@@ -25,21 +25,13 @@ Import and initialize Handshake in your project:
 ```typescript
 import { Handshake } from 'handshake-ts';
 
-const handshake = new Handshake() // default kms is Keyring
-handshake.sign(Buffer.from("message"), { chainId: 1, protocol: "evm", targetAddress: "0x123" })
+const handshake = new Handshake()
+const savingsWallet = handshake.walletManager.createNewWallet("saving wallet 1")
+const tradingWallet = handshake.walletManager.createNewWallet("trading wallet 1")
+await handshake.assetsManager.transferToken(savingsWallet, 0.01, "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "arb:0x123..")
 ```
 
-if you want to specify a different KMS, for example Lit Protocol, you can do in this way:
-```typescript
-import { Handshake, LitKms } from 'handshake-ts';
 
-const handshake = new Handshake({
-    kms: {
-        constructor: LitKms
-    }
-})
-handshake.sign(Buffer.from("message"))
-```
 
 ## Contributing
 Contributions are welcome! Please open an issue or submit a pull request with improvements.
