@@ -1,7 +1,8 @@
-import { ethers, Wallet } from 'ethers'
-import { Kms, Signature } from '../Kms'
+import { ethers, hexlify, Wallet } from 'ethers'
 
-import { jsonRpcId, stripHexPrefix } from '../../utils'
+import { addHexPrefix, jsonRpcId, stripHexPrefix } from '../../utils'
+import { Operation, Protocol } from './Operation'
+import { IKms, Signature } from '../types'
 
 export interface KeyringKmsConfigs {
   bootNodeUrl: string
@@ -9,7 +10,13 @@ export interface KeyringKmsConfigs {
   instancePrivateKey?: string
 }
 
-export class KeyringKms extends Kms {
+export interface KeyringSignOptions {
+  chainId: number
+  protocol: Protocol
+  targetAddress: string
+}
+
+export class KeyringKms implements IKms<KeyringSignOptions> {
   private _initialized: boolean = false
   private _instanceKeyWallet: Wallet
   bootNodeUrl: string
@@ -19,10 +26,6 @@ export class KeyringKms extends Kms {
   sharedEvmAddress?: string
 
   constructor(configs?: KeyringKmsConfigs) {
-    super({
-      provider: 'Keyring',
-    })
-
     this.bootNodeUrl = configs?.bootNodeUrl || 'http://bootnode.keyring.xyz'
 
     // NOTE: at the moment is supported only this authentication method
@@ -41,7 +44,7 @@ export class KeyringKms extends Kms {
     // TODO: starting from bootnode, get a node url
     this.connectedNodeUrl = 'http://localhost:3001'
 
-    const { result: keygenResult } = await (
+    const { result } = await (
       await globalThis.fetch(this.connectedNodeUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -54,15 +57,48 @@ export class KeyringKms extends Kms {
       })
     ).json()
 
-    this.sharedPublicKey = keygenResult.sharedPublicKey
-    this.sharedEvmAddress = keygenResult.sharedEvmAddress
+    this.sharedPublicKey = result.sharedPublicKey
+    this.sharedEvmAddress = result.sharedEvmAddress
     this._initialized = true
   }
 
-  async sign(data: Buffer): Promise<Signature> {
+  async sign(data: Buffer, options: KeyringSignOptions): Promise<Signature> {
     await this.checkIfInitialized()
 
-    return data
+    const operation = new Operation({
+      chainId: options.chainId,
+      protocol: options.protocol,
+      data,
+      targetAddress: options.targetAddress,
+    })
+
+    const serializedOperation = operation.serialize()
+    const operationSignature = this._instanceKeyWallet.signingKey.sign(ethers.sha256(serializedOperation)).serialized
+
+    const { result } = await (
+      await globalThis.fetch(this.connectedNodeUrl as string, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: jsonRpcId(),
+          jsonrpc: '2.0',
+          method: 'keyring_sign',
+          params: [
+            stripHexPrefix(this.sharedPublicKey as string),
+            {
+              protocol: operation.protocol,
+              chainId: operation.chainId,
+              targetAddress: stripHexPrefix(operation.targetAddress),
+              data: stripHexPrefix(hexlify(operation.data)),
+              salt: stripHexPrefix(operation.salt),
+            },
+            stripHexPrefix(operationSignature.slice(0, operationSignature.length - 2)),
+          ],
+        }),
+      })
+    ).json()
+
+    return Buffer.from(ethers.getBytes(addHexPrefix(result.signature)))
   }
 
   private async checkIfInitialized() {

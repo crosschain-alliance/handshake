@@ -54,6 +54,7 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
+    "borsh": "^2.0.0",
     "ethers": "^6.13.5"
   }
 }

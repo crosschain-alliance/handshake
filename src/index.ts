@@ -1,33 +1,33 @@
-import { KeyringKms, KeyringKmsConfigs } from './kms/keyring'
-import { LitKms, LitKmsConfigs } from './kms/lit'
+import { IKms } from './kms/types'
+import { KeyringKms, KeyringKmsConfigs, KeyringSignOptions } from './kms/keyring'
 
-export interface Kms {
-  name: 'keyring' | 'lit'
-  configs: KeyringKmsConfigs | LitKmsConfigs
+export interface HandshakeConfigs<K extends IKms<O>, C, O> {
+  kms: {
+    constructor: new (configs: C) => K
+    configs: C
+  }
 }
 
-export interface HandshakeConfigs {
-  kms: Kms
-}
+export class Handshake<
+  O extends KeyringSignOptions = KeyringSignOptions,
+  K extends IKms<O> = KeyringKms,
+  C = KeyringKmsConfigs
+> {
+  private kms: K
 
-class Handshake {
-  private kms: KeyringKms | LitKms = new KeyringKms()
-
-  constructor(configs?: HandshakeConfigs) {
-    if (!configs) {
-      this.kms = new KeyringKms()
-    } else if (configs.kms.name === 'keyring') {
-      this.kms = new KeyringKms(configs.kms.configs as KeyringKmsConfigs)
-    } else if (configs.kms.name === 'lit') {
-      this.kms = new LitKms(configs.kms.configs as LitKmsConfigs)
+  constructor(configs?: HandshakeConfigs<K, C, O>) {
+    if (configs && configs.kms) {
+      this.kms = new configs.kms.constructor(configs.kms.configs)
     } else {
-      throw new Error('Invalid KMS')
+      this.kms = (new KeyringKms() as unknown) as K
     }
   }
 
-  initialize(): Promise<void> {
+  async initialize(): Promise<void> {
     return this.kms.initialize()
   }
-}
 
-export default Handshake
+  async sign(data: Buffer, options: O): Promise<Buffer> {
+    return this.kms.sign(data, options)
+  }
+}
