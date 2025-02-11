@@ -1,6 +1,6 @@
 import * as borsh from 'borsh'
-import { ethers } from 'ethers'
 import crypto from 'crypto'
+import { hexToBytes } from '@ethereumjs/util'
 
 const PROTOCOLS_ENUM = {
   evm: 0,
@@ -44,9 +44,9 @@ export class Operation {
       {
         protocol: PROTOCOLS_ENUM[this.protocol],
         chainId: this.chainId,
-        targetAddress: ethers.getBytes(this.targetAddress),
+        targetAddress: hexToBytes(this.targetAddress),
         data: this.data,
-        salt: ethers.getBytes(this.salt),
+        salt: hexToBytes(this.salt),
       }
     )
   }

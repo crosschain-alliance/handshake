@@ -54,6 +54,7 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
+    "@ethereumjs/util": "^9.1.0",
     "borsh": "^2.0.0",
     "ethers": "^6.13.5"
   }

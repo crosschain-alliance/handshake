@@ -1,8 +1,8 @@
 import { ethers, hexlify, Wallet } from 'ethers'
 
-import { addHexPrefix, jsonRpcId, stripHexPrefix } from '../../utils'
 import { Operation, Protocol } from './Operation'
 import { IKms, Signature } from '../types'
+import { addHexPrefix, stripHexPrefix } from '@ethereumjs/util'
 
 export interface KeyringKmsConfigs {
   bootNodeUrl: string
@@ -15,6 +15,8 @@ export interface KeyringSignOptions {
   protocol: Protocol
   targetAddress: string
 }
+
+export const jsonRpcId = () => Math.floor(Math.random() * 10000001)
 
 export class KeyringKms implements IKms<KeyringSignOptions> {
   private _initialized: boolean = false
