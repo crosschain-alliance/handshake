@@ -31,7 +31,7 @@ handshake.sign(Buffer.from("message"), { chainId: 1, protocol: "evm", targetAddr
 
 if you want to specify a different KMS, for example Lit Protocol, you can do in this way:
 ```typescript
-import { Handshake } from 'handshake-ts';
+import { Handshake, LitKms } from 'handshake-ts';
 
 const handshake = new Handshake({
     kms: {
