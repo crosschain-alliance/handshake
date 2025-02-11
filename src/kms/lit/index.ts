@@ -5,7 +5,7 @@ export interface LitKmsConfigs {}
 export interface LitSignOptions {}
 
 export class LitKms implements IKms<LitSignOptions> {
-  constructor(configs: LitKmsConfigs) {
+  constructor(configs?: LitKmsConfigs) {
     console.log(configs)
   }
 
@@ -14,7 +14,7 @@ export class LitKms implements IKms<LitSignOptions> {
     return
   }
 
-  async sign(data: Buffer, options: LitSignOptions): Promise<Signature> {
+  async sign(data: Buffer, options: LitSignOptions = {}): Promise<Signature> {
     console.log(options)
     return data
   }

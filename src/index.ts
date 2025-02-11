@@ -1,10 +1,11 @@
 import { IKms } from './kms/types'
 import { KeyringKms, KeyringKmsConfigs, KeyringSignOptions } from './kms/keyring'
+import { LitKms } from './kms/lit'
 
 export interface HandshakeConfigs<K extends IKms<O>, C, O> {
   kms: {
-    constructor: new (configs: C) => K
-    configs: C
+    constructor: new (configs?: C) => K
+    configs?: C
   }
 }
 
@@ -16,7 +17,7 @@ export class Handshake<
   private kms: K
 
   constructor(configs?: HandshakeConfigs<K, C, O>) {
-    if (configs && configs.kms) {
+    if (configs?.kms) {
       this.kms = new configs.kms.constructor(configs.kms.configs)
     } else {
       this.kms = (new KeyringKms() as unknown) as K
@@ -27,7 +28,12 @@ export class Handshake<
     return this.kms.initialize()
   }
 
-  async sign(data: Buffer, options: O): Promise<Buffer> {
-    return this.kms.sign(data, options)
+  async sign(data: Buffer, options?: O): Promise<Buffer> {
+    return this.kms.sign(data, options || ({} as O))
   }
+}
+
+export {
+  KeyringKms,
+  LitKms
 }
