@@ -1,8 +1,9 @@
 import { ethers, hexlify, Wallet } from 'ethers'
+import { addHexPrefix, stripHexPrefix } from '@ethereumjs/util'
+import fs from 'fs'
 
 import { Operation, Protocol } from './Operation'
 import { IKms, Signature } from '../types'
-import { addHexPrefix, stripHexPrefix } from '@ethereumjs/util'
 
 export interface KeyringKmsConfigs {
   bootNodeUrl: string
@@ -36,7 +37,15 @@ export class KeyringKms implements IKms<KeyringSignOptions> {
     this.instanceKeyType = configs?.instanceKeyType ?? 'ecdsa'
 
     if (!configs?.instancePrivateKey) {
-      this._instanceKeyWallet = new ethers.Wallet(Wallet.createRandom().privateKey)
+      let pk
+      if (!fs.existsSync("keyring-pk")) {
+        pk = Wallet.createRandom().privateKey
+        // TODO: store it encrypted or within something secure
+        fs.writeFileSync("keyring-pk", pk)
+      } else {
+        pk = fs.readFileSync("pk").toString()
+      }
+      this._instanceKeyWallet = new ethers.Wallet(pk)
     } else {
       this._instanceKeyWallet = new ethers.Wallet(configs.instancePrivateKey)
     }
