@@ -1,6 +1,5 @@
 import 'dotenv/config'
 import { AbiCoder, Contract, getBytes, hexlify, JsonRpcProvider, sha256, Wallet } from 'ethers'
-import fs from 'fs'
 
 import { buildSafeTransaction, buildSignatureBytes, safeApproveHash } from './safe'
 import { addHexPrefix, stripHexPrefix } from '../../utils'
@@ -46,15 +45,7 @@ export class KeyringKms extends Kms implements IKms<KeyringSignOptions> {
     this.instanceKeyType = configs?.instanceKeyType ?? 'secp256k1'
 
     if (!configs?.instancePrivateKey) {
-      let pk
-      if (!fs.existsSync('keyring-pk')) {
-        pk = Wallet.createRandom().privateKey
-        // TODO: store it encrypted or within something secure
-        fs.writeFileSync('keyring-pk', pk)
-      } else {
-        pk = fs.readFileSync('pk').toString()
-      }
-      this._instanceKeyWallet = new Wallet(pk)
+      this._instanceKeyWallet = new Wallet(Wallet.createRandom().privateKey)
     } else {
       this._instanceKeyWallet = new Wallet(configs.instancePrivateKey)
     }
@@ -148,16 +139,15 @@ export class KeyringKms extends Kms implements IKms<KeyringSignOptions> {
             {
               protocol: operation.protocol,
               chainId: Number(operation.chainId),
-              targetAddress: stripHexPrefix(hexlify(operation.targetAddress)),
-              data: stripHexPrefix(hexlify(operation.data)),
-              salt: stripHexPrefix(hexlify(operation.salt)),
+              targetAddress: stripHexPrefix(hexlify(Buffer.from(operation.targetAddress))),
+              data: stripHexPrefix(hexlify(Buffer.from(operation.data))),
+              salt: stripHexPrefix(hexlify(Buffer.from(operation.salt))),
             },
             stripHexPrefix(operationSignature.slice(0, operationSignature.length - 2)),
           ],
         }),
       })
     ).json()
-
     return Buffer.from(getBytes(addHexPrefix(result.signature)))
   }
 
