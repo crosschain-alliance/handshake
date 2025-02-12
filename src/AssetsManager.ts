@@ -1,4 +1,4 @@
-import { ethers, JsonRpcProvider } from 'ethers'
+import { JsonRpcProvider, Contract } from 'ethers'
 import { Wallet } from './WalletManager'
 import erc20Abi from './kms/keyring/abi/erc20'
 
@@ -40,7 +40,7 @@ export class AssetsManager {
     if (!networkConfig) throw new Error('network configs not supported. You can add it during the initialization')
     const provider = new JsonRpcProvider(networkConfig.rpc)
 
-    const asset = new ethers.Contract(tokenAddress, erc20Abi, provider)
+    const asset = new Contract(tokenAddress, erc20Abi, provider)
     const decimals = (await asset.decimals()) as bigint
     const onchainAmount = (BigInt(amount * 10 ** 18) * BigInt(Math.pow(10, Number(decimals)))) / BigInt(10 ** 18)
 

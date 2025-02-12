@@ -1,9 +1,9 @@
 import 'dotenv/config'
-import { ethers, JsonRpcProvider, Wallet } from 'ethers'
-import { addHexPrefix, bytesToHex, hexToBytes, stripHexPrefix } from '@ethereumjs/util'
+import { AbiCoder, Contract, getBytes, hexlify, JsonRpcProvider, sha256, Wallet } from 'ethers'
 import fs from 'fs'
 
 import { buildSafeTransaction, buildSignatureBytes, safeApproveHash } from './safe'
+import { addHexPrefix, stripHexPrefix } from '../../utils'
 import { Operation } from './Operation'
 import { IKms, Signature } from '../types'
 import { Kms } from '../Kms'
@@ -54,9 +54,9 @@ export class KeyringKms extends Kms implements IKms<KeyringSignOptions> {
       } else {
         pk = fs.readFileSync('pk').toString()
       }
-      this._instanceKeyWallet = new ethers.Wallet(pk)
+      this._instanceKeyWallet = new Wallet(pk)
     } else {
-      this._instanceKeyWallet = new ethers.Wallet(configs.instancePrivateKey)
+      this._instanceKeyWallet = new Wallet(configs.instancePrivateKey)
     }
   }
 
@@ -91,10 +91,10 @@ export class KeyringKms extends Kms implements IKms<KeyringSignOptions> {
     // One approach is to use CREATE2 to deterministically generate the Safe address,
     // ensuring a direct association with the signer. This would enforce the linkage.
 
-    const abiCoder = new ethers.AbiCoder()
+    const abiCoder = new AbiCoder()
     const safeAddress = '0xB7511E8434cC206fd75EC150E0b820E61e0d467a'
-    const asset = new ethers.Contract(tokenAddress, erc20Abi, provider)
-    const safe = new ethers.Contract(safeAddress, safeAbi, provider)
+    const asset = new Contract(tokenAddress, erc20Abi, provider)
+    const safe = new Contract(safeAddress, safeAbi, provider)
 
     const tx = buildSafeTransaction({
       to: await asset.getAddress(),
@@ -104,7 +104,7 @@ export class KeyringKms extends Kms implements IKms<KeyringSignOptions> {
     })
 
     const signatureBytes = buildSignatureBytes([
-      await safeApproveHash(new ethers.Wallet(this._instanceKeyWallet.privateKey, provider), safe, tx, false),
+      await safeApproveHash(new Wallet(this._instanceKeyWallet.privateKey, provider), safe, tx, false),
     ])
     const operationData = abiCoder.encode(
       ['address', 'uint256', 'bytes', 'uint8', 'uint256', 'uint256', 'uint256', 'address', 'address', 'bytes'],
@@ -125,15 +125,15 @@ export class KeyringKms extends Kms implements IKms<KeyringSignOptions> {
     const operation = new Operation({
       chainId: provider._network.chainId,
       protocol: 'evm',
-      data: hexToBytes(operationData),
-      targetAddress: hexToBytes('0xc19A224520c21b8ab0BF50D47570d06805262c70'), // KeyringSafeModule
+      data: getBytes(operationData),
+      targetAddress: getBytes('0xc19A224520c21b8ab0BF50D47570d06805262c70'), // KeyringSafeModule
     })
     return Buffer.from(operation.serialize())
   }
 
   async sign(data: Buffer /*, options?: KeyringSignOptions*/): Promise<Signature> {
     const operation = Operation.from(data)
-    const operationSignature = this._instanceKeyWallet.signingKey.sign(ethers.sha256(data)).serialized
+    const operationSignature = this._instanceKeyWallet.signingKey.sign(sha256(data)).serialized
 
     const { result } = await (
       await globalThis.fetch(this.connectedNodeUrl as string, {
@@ -148,9 +148,9 @@ export class KeyringKms extends Kms implements IKms<KeyringSignOptions> {
             {
               protocol: operation.protocol,
               chainId: Number(operation.chainId),
-              targetAddress: stripHexPrefix(bytesToHex(operation.targetAddress)),
-              data: stripHexPrefix(bytesToHex(operation.data)),
-              salt: stripHexPrefix(bytesToHex(operation.salt)),
+              targetAddress: stripHexPrefix(hexlify(operation.targetAddress)),
+              data: stripHexPrefix(hexlify(operation.data)),
+              salt: stripHexPrefix(hexlify(operation.salt)),
             },
             stripHexPrefix(operationSignature.slice(0, operationSignature.length - 2)),
           ],
@@ -158,7 +158,7 @@ export class KeyringKms extends Kms implements IKms<KeyringSignOptions> {
       })
     ).json()
 
-    return Buffer.from(ethers.getBytes(addHexPrefix(result.signature)))
+    return Buffer.from(getBytes(addHexPrefix(result.signature)))
   }
 
   async postSignature(signature: Signature, data: Buffer, provider: JsonRpcProvider) {
@@ -168,9 +168,9 @@ export class KeyringKms extends Kms implements IKms<KeyringSignOptions> {
     if (!gatewayAddress) throw new Error('invalid network')
 
     // NOTE: provisional wallet with funds in ordet to be able to relay the tx
-    const wallet = new ethers.Wallet(process.env.RELAY_PK as string, provider)
+    const wallet = new Wallet(process.env.RELAY_PK as string, provider)
 
-    const gateway = new ethers.Contract(gatewayAddress, keyringGatewayAbi, wallet)
+    const gateway = new Contract(gatewayAddress, keyringGatewayAbi, wallet)
     const serializedOperation = data
     await gateway.executeOperation(serializedOperation, signature)
   }

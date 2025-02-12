@@ -1,5 +1,4 @@
 import { Signer, BigNumberish, BaseContract, ethers } from 'ethers'
-import { AddressZero } from '@ethersproject/constants'
 
 export const EIP_DOMAIN = {
   EIP712Domain: [
@@ -286,8 +285,8 @@ export const buildSafeTransaction = (template: {
     safeTxGas: template.safeTxGas || 0,
     baseGas: template.baseGas || 0,
     gasPrice: template.gasPrice || 0,
-    gasToken: template.gasToken || AddressZero,
-    refundReceiver: template.refundReceiver || AddressZero,
+    gasToken: template.gasToken || '0x0000000000000000000000000000000000000000',
+    refundReceiver: template.refundReceiver || '0x0000000000000000000000000000000000000000',
     nonce: template.nonce,
   }
 }
