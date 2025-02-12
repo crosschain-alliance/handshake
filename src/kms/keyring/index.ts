@@ -12,8 +12,8 @@ import erc20Abi from './abi/erc20'
 import safeAbi from './abi/safe'
 
 export interface KeyringKmsConfigs {
-  bootNodeUrl: string
-  instanceKeyType: 'ecdsa'
+  bootNodeUrl?: string
+  instanceKeyType?: 'secp256k1'
   instancePrivateKey?: string
 }
 
@@ -21,7 +21,7 @@ export interface KeyringSignOptions {}
 
 export const jsonRpcId = () => Math.floor(Math.random() * 10000001)
 
-const KEYRING_ADDRESSES: { [key: number]: string } = {
+const KEYRING_GATEWAY_ADDRESSES: { [key: number]: string } = {
   42161: '0xaA21f3be38b66aa6162A8E30AB712098A30B23E2',
 }
 
@@ -41,9 +41,9 @@ export class KeyringKms extends Kms implements IKms<KeyringSignOptions> {
     this.bootNodeUrl = configs?.bootNodeUrl || 'http://bootnode.keyring.xyz'
 
     // NOTE: at the moment is supported only this authentication method
-    if (configs?.instanceKeyType && configs.instanceKeyType !== 'ecdsa') throw new Error('Invalid identity type')
+    if (configs?.instanceKeyType && configs.instanceKeyType !== 'secp256k1') throw new Error('Invalid identity type')
 
-    this.instanceKeyType = configs?.instanceKeyType ?? 'ecdsa'
+    this.instanceKeyType = configs?.instanceKeyType ?? 'secp256k1'
 
     if (!configs?.instancePrivateKey) {
       let pk
@@ -164,7 +164,7 @@ export class KeyringKms extends Kms implements IKms<KeyringSignOptions> {
   async postSignature(signature: Signature, data: Buffer, provider: JsonRpcProvider) {
     // NOTE: there will be an api call to propagate the signed
 
-    const gatewayAddress = KEYRING_ADDRESSES[Number(provider._network.chainId)]
+    const gatewayAddress = KEYRING_GATEWAY_ADDRESSES[Number(provider._network.chainId)]
     if (!gatewayAddress) throw new Error('invalid network')
 
     // NOTE: provisional wallet with funds in ordet to be able to relay the tx

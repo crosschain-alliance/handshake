@@ -33,7 +33,7 @@ export class AssetsManager {
     }
   }
 
-  async transferToken(wallet: Wallet, amount: number, tokenAddress: string, destinationAddressAsEIP3770: string) {
+  async transferToken(wallet: Wallet, amount: number, destinationAddressAsEIP3770: string, tokenAddress: string) {
     const [chain, recipient] = destinationAddressAsEIP3770.split(':')
 
     const networkConfig = this.networkConfigs[chain]
