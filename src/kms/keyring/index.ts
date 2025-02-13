@@ -4,7 +4,7 @@ import { AbiCoder, Contract, getBytes, hexlify, JsonRpcProvider, sha256, Wallet 
 import { buildSafeTransaction, buildSignatureBytes, safeApproveHash } from './safe'
 import { addHexPrefix, stripHexPrefix } from '../../utils'
 import { Operation } from './Operation'
-import { IKms, Signature } from '../types'
+import { IKms, Signature, string } from '../types'
 import { Kms } from '../Kms'
 import keyringGatewayAbi from './abi/keyring-gateway'
 import erc20Abi from './abi/erc20'
@@ -151,17 +151,18 @@ export class KeyringKms extends Kms implements IKms<KeyringSignOptions> {
     return Buffer.from(getBytes(addHexPrefix(result.signature)))
   }
 
-  async postSignature(signature: Signature, data: Buffer, provider: JsonRpcProvider) {
+  async postSignature(signature: Signature, data: Buffer, provider: JsonRpcProvider): Promise<string> {
     // NOTE: there will be an api call to propagate the signed
 
     const gatewayAddress = KEYRING_GATEWAY_ADDRESSES[Number(provider._network.chainId)]
     if (!gatewayAddress) throw new Error('invalid network')
 
     // NOTE: provisional wallet with funds in ordet to be able to relay the tx
-    const wallet = new Wallet(process.env.RELAY_PK as string, provider)
+    const wallet = new Wallet(this._instanceKeyWallet.privateKey, provider)
 
     const gateway = new Contract(gatewayAddress, keyringGatewayAbi, wallet)
     const serializedOperation = data
-    await gateway.executeOperation(serializedOperation, signature)
+    const tx = await gateway.executeOperation(serializedOperation, signature)
+    return tx.hash
   }
 }

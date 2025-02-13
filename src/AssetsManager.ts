@@ -1,6 +1,7 @@
 import { JsonRpcProvider, Contract } from 'ethers'
 import { Wallet } from './WalletManager'
 import erc20Abi from './kms/keyring/abi/erc20'
+import { string } from './kms/types'
 
 export type NetworkConfigs = {
   [key: string]: {
@@ -33,7 +34,12 @@ export class AssetsManager {
     }
   }
 
-  async transferToken(wallet: Wallet, amount: number, destinationAddressAsEIP3770: string, tokenAddress: string) {
+  async transferToken(
+    wallet: Wallet,
+    amount: number,
+    destinationAddressAsEIP3770: string,
+    tokenAddress: string
+  ): Promise<string> {
     const [chain, recipient] = destinationAddressAsEIP3770.split(':')
 
     const networkConfig = this.networkConfigs[chain]
@@ -46,6 +52,6 @@ export class AssetsManager {
 
     const data = await wallet.kms.prepareTransfer(tokenAddress, onchainAmount.toString(), recipient, provider)
     const signature = await wallet.sign(data)
-    await wallet.kms.postSignature(signature, data, provider)
+    return await wallet.kms.postSignature(signature, data, provider)
   }
 }

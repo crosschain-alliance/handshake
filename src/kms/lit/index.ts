@@ -1,5 +1,5 @@
 import { JsonRpcProvider } from 'ethers'
-import { IKms, Signature } from '../types'
+import { IKms, Signature, string } from '../types'
 
 export interface LitKmsConfigs {}
 
@@ -32,8 +32,9 @@ export class LitKms implements IKms<LitSignOptions> {
     return Buffer.from([])
   }
 
-  async postSignature(signature: Signature, data: Buffer, provider: JsonRpcProvider) {
+  async postSignature(signature: Signature, data: Buffer, provider: JsonRpcProvider): Promise<string> {
     // TODO
     console.log(signature, data, provider)
+    return ''
   }
 }
